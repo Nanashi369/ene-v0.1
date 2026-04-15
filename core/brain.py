@@ -34,7 +34,7 @@ def generate_internal_thought(emotion, memory):
 
     # 🔥 memória influencia pensamento
     if memory:
-        last = memory[-1]["text"]
+        last = memory[-1].get("text","")
         thought += f" (lembro de: {last[:30]})"
 
     if emotion.get("mood") == "happy":

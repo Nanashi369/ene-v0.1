@@ -5,7 +5,7 @@ class EneState:
         self.mood = "neutral"
         self.last_interaction = None
 
-        self.sprite = "assets/idle.png"
+        self.sprite = "assets/idle/idle.png"
 
         self.is_thinking = False
         self.is_talking = False

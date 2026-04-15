@@ -1,3 +1,4 @@
+from importlib.resources import path
 import tkinter as tk
 import threading
 import time
@@ -6,99 +7,98 @@ from PIL import Image, ImageTk
 from flask import app
 
 
-class EneApp:
-    def __init__(self, controller):
+class EneSpriteWindow:
+    def __init__(self, master, controller):
 
         self.controller = controller
-        
-        self.root = tk.Tk()
-        self.root.title("Ene")
-        self.root.geometry("420x500")
+
+        self.root = tk.Toplevel(master)
+        self.root.title("Ene Sprite")
+        self.root.geometry("600x400")
         self.root.configure(bg="black")
 
-        # 💬 fala da Ene
-        self.label = tk.Label(
-            self.root,
-            text="...",
-            fg="white",
-            bg="black",
-            wraplength=400,
-            font=("Segoe UI", 14)
-        )
-        self.label.pack(pady=10)
+        self.root.overrideredirect(True)
+        self.root.attributes("-topmost", False)
+        self.root.wm_attributes("-transparentcolor", "black")
 
-        # 🖼 sprite
-        self.image_label = tk.Label(self.root, bg="black")
-        self.image_label.pack()
+        self.label = tk.Label(self.root, bg="black")
+        self.label.pack()
 
-        # ⌨ input
+        self.label.bind("<Button-1>", self.start_drag)
+        self.label.bind("<B1-Motion>", self.do_drag)
+
+    def update_sprite(self, path):
+        from PIL import Image, ImageTk
+
+        img = Image.open(path).resize((580, 580))
+
+        self.tk_img = ImageTk.PhotoImage(img)
+        self.label.config(image=self.tk_img)
+
+    def start_drag(self, e):
+        self.offset_x = e.x
+        self.offset_y = e.y
+
+    def do_drag(self, e):
+        x = self.root.winfo_pointerx() - self.offset_x
+        y = self.root.winfo_pointery() - self.offset_y
+        self.root.geometry(f"+{x}+{y}")
+
+class EneChatWindow:
+    def __init__(self, master, controller):
+
+        self.controller = controller
+
+        self.root = tk.Toplevel(master)
+        self.root.title("Ene Chat")
+        self.root.geometry("300x80")
+        self.root.attributes("-topmost", False)
+        self.root.wm_attributes("-transparentcolor", "black")
+
+        self.text = tk.Label(self.root, text="...", wraplength=380)
+        self.text.pack()
+
         self.entry = tk.Entry(self.root)
-        self.entry.pack()
+        self.entry.pack(fill="x")
+
         self.entry.bind("<Return>", self.on_enter)
 
-        # estado
-        self.running = True
-
-        # loops
-        threading.Thread(target=self.life_loop, daemon=True).start()
-        self.ui_loop()
-
-        self.root.mainloop()
-
-    # -------------------------
-    # INPUT DO USUÁRIO
-    # -------------------------
     def on_enter(self, event):
         text = self.entry.get()
         self.entry.delete(0, tk.END)
 
-        self.label.config(text="...")
+        self.text.config(text="...")
 
         threading.Thread(
-            target=self.send_to_controller,
+            target=self._process,
             args=(text,),
             daemon=True
         ).start()
 
-    def send_to_controller(self, text):
+
+    def _process(self, text):
         reply = self.controller.handle_input(text)
-        self.root.after(0, lambda: self.label.config(text=reply))
 
-    # -------------------------
-    # VIDA AUTÔNOMA
-    # -------------------------
-    def life_loop(self):
-        while self.running:
-            time.sleep(random.randint(5, 10))
+        self.root.after(0, lambda: self.text.config(text=reply))
 
-            thought = self.controller.brain_tick()
+class EneApp:
+    def __init__(self, controller):
 
-            if random.random() < 0.4:
-                self.root.after(0, lambda: self.label.config(text=thought))
+        self.controller = controller
 
-    # -------------------------
-    # RENDER VISUAL
-    # -------------------------
-    def ui_loop(self):
-        
-        sprite = self.controller.get_sprite()
+        # 🔥 ÚNICO ROOT REAL
+        self.root = tk.Tk()
+        self.root.withdraw()  # esconde janela vazia
 
-        if sprite:
-            try:
-                img = Image.open(sprite)
-                img = img.resize((280, 280))
-                photo = ImageTk.PhotoImage(img)
+        self.sprite = EneSpriteWindow(self.root, controller)
+        self.chat = EneChatWindow(self.root, controller)
 
-                self.image_label.config(image=photo)
-                self.image_label.image = photo
-            except:
-                pass
+        self.loop()
 
-        self.root.after(50, self.ui_loop)
- 
-    # -------------------------
-    # FECHAR
-    # -------------------------
-    def close(self):
-        self.running = False
-        self.root.destroy()
+        self.root.mainloop()
+    def loop(self):
+        sprite_path = self.controller.get_sprite()
+        self.sprite.update_sprite(sprite_path)
+
+        self.sprite.root.after(50, self.loop)
+
