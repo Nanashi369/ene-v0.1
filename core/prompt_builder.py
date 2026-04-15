@@ -1,3 +1,6 @@
+from core import emotion
+
+
 def build_prompt(user_input, memory, emotion, personality, thought):
 
     recent_memory = memory[-5:] if memory else []
@@ -26,16 +29,24 @@ Você fala de forma natural, curta e direta.
         "neutral": "estável"
     }
 
-    mood = emotion.get("mood", "neutral")
+    emotion_data = emotion if isinstance(emotion, dict) else {
+    "mood": emotion,
+    "energy": 50
+}
+
+    mood = emotion_data.get("mood", "neutral")
 
     emotion_block = f"""
-Estado interno atual:
-- humor: {mood} ({mood_map.get(mood)})
-- energia: {emotion.get("energy", 50)}
+    Estado interno atual:
+    - humor: {mood} ({mood_map.get(mood)})
+    - energia: {emotion_data.get("energy", 50)}
 """
 
     # 🧬 personalidade traduzida em comportamento
-    traits = personality.get()
+    if isinstance(personality, dict):
+        traits = personality
+    else:
+        traits = personality.get()
 
     personality_block = f"""
 Traços de personalidade:

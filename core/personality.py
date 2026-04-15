@@ -31,30 +31,41 @@ class Personality:
     # 🔥 atualização contínua
     def evolve(self, memory, emotion):
 
+        # 🔥 converte emoção se vier como string
+        if isinstance(emotion, str):
+            mapa = {
+                "tired": 0.2,
+                "bored": 0.3,
+                "neutral": 0.5,
+                "curious": 0.7,
+                "happy": 0.9
+            }
+            emotion = mapa.get(emotion, 0.5)
+
         # curiosidade cresce com novidade
-       for m in memory:
-        if m["emotion"] == "happy":
-            self.data["warmth"] += 0.01
+        for m in memory:
+            if m["emotion"] == "happy":
+                self.data["warmth"] += 0.01
 
-        if m["emotion"] == "tired":
-            self.data["energy"] -= 0.01
+            if m["emotion"] == "tired":
+                self.data["energy"] -= 0.01
 
-        # sarcasmo sobe se emoção está estável
-        if 0.4 < emotion < 0.7:
-            self.data["sarcasm"] += 0.005
+            # sarcasmo sobe se emoção está estável
+            if 0.4 < emotion < 0.7:
+                self.data["sarcasm"] += 0.005
 
-        # energia muda com emoção geral
-        self.data["energy"] = (self.data["energy"] + emotion) / 2
+            # energia muda com emoção geral
+            self.data["energy"] = (self.data["energy"] + emotion) / 2
 
-        # estabilidade depende de memória recente
-        if len(memory) > 5:
-            self.data["stability"] += 0.002
+            # estabilidade depende de memória recente
+            if len(memory) > 5:
+                self.data["stability"] += 0.002
 
-        # limites
-        for k in self.data:
-            self.data[k] = max(0.0, min(1.0, self.data[k]))
+            # limites
+            for k in self.data:
+                self.data[k] = max(0.0, min(1.0, self.data[k]))
 
-        self._save()
+            self._save()
 
     def influence_prompt(self, thought, emotion):
         if self.data["stability"] < 0.3:

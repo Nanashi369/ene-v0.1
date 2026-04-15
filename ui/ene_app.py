@@ -3,12 +3,14 @@ import threading
 import time
 import random
 from PIL import Image, ImageTk
+from flask import app
 
 
 class EneApp:
     def __init__(self, controller):
-        self.controller = controller
 
+        self.controller = controller
+        
         self.root = tk.Tk()
         self.root.title("Ene")
         self.root.geometry("420x500")
@@ -78,8 +80,8 @@ class EneApp:
     # RENDER VISUAL
     # -------------------------
     def ui_loop(self):
-        sprite = self.state.sprite
-        sprite = self.controller.state.sprite
+        
+        sprite = self.controller.get_sprite()
 
         if sprite:
             try:
@@ -93,7 +95,7 @@ class EneApp:
                 pass
 
         self.root.after(50, self.ui_loop)
-
+ 
     # -------------------------
     # FECHAR
     # -------------------------

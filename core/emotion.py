@@ -34,6 +34,24 @@ class EmotionSystem:
 
         self.last_update = time.time()
 
+    def react_to_input(self, text):
+        if "oi" in text:
+            self.state.mood = "happy"
+        elif "tchau" in text:
+            self.state.mood = "sad"
+        else:
+            self.state.mood = "neutral"
+
+        self.update_visual()
+
+    def update_visual(self):
+        if self.state.mood == "happy":
+            self.state.sprite = "assets/happy.png"
+        elif self.state.mood == "sad":
+            self.state.sprite = "assets/tired.png"
+        else:
+            self.state.sprite = "assets/idle.png"    
+
     # -------------------------
     # ATUALIZAÇÃO PRINCIPAL
     # -------------------------

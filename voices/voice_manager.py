@@ -2,35 +2,35 @@ import time
 import threading
 
 
-class voicemanager:
+class VoiceManager:
     def __init__(self, edge_tts, xtts_engine):
-        
+
         self.edge = edge_tts
         self.xtts = xtts_engine
 
-        self.internet = True
-        self.xtts_ready = False
+        # 🎯 modo de operação
+        self.mode = "online"  
+        # "online"  → usa Edge
+        # "offline" → usa XTTS
+        # "auto"    → tenta Edge, fallback XTTS
 
         self.is_speaking = False
         self.queue = []
 
     # =========================
-    # CONTROLES EXTERNOS
+    # CONTROLE EXTERNO
     # =========================
-    def set_internet(self, status: bool):
-        self.internet = status
-
-    def set_xtts_ready(self, status: bool):
-        self.xtts_ready = status
+    def set_mode(self, mode: str):
+        self.mode = mode  # "online", "offline", "auto"
 
     # =========================
     # API PRINCIPAL
     # =========================
     def falar(self, texto, emocao="neutral", prioridade=1, tipo="normal"):
 
-        # 🔊 emoção controla estilo
+        # 🎭 emoção só muda estilo (NÃO engine)
         if emocao == "happy":
-            texto = texto + " 🙂"
+            texto += " 🙂"
 
         elif emocao == "tired":
             texto = texto.lower()
@@ -38,18 +38,14 @@ class voicemanager:
         elif emocao == "curious":
             texto = "hmm... " + texto
 
-        # 🎤 escolha de engine
-        if emocao == "tired":
-            self.edge.falar(texto)
-        else:
-            self.xtts.falar(texto)
+        # adiciona na fila
         self.queue.append((texto, emocao, prioridade, tipo))
 
         if not self.is_speaking:
             self._processar_fila()
 
     # =========================
-    # FILA INTERNA
+    # FILA
     # =========================
     def _processar_fila(self):
         def worker():
@@ -58,17 +54,33 @@ class voicemanager:
 
                 texto, emocao, prioridade, tipo = self.queue.pop(0)
 
-                engine = self._escolher_engine(emocao, prioridade, tipo)
+                engine = self._escolher_engine()
 
                 try:
-                    engine.speak(texto)
+                    audio_path = engine.falar(texto)
+
+                    # 🔊 tocar áudio se existir
+                    if audio_path:
+                        import simpleaudio as sa
+                        wave_obj = sa.WaveObject.from_wave_file(audio_path)
+                        play_obj = wave_obj.play()
+
                 except Exception as e:
                     print("[VoiceManager] erro:", e)
 
-                    # fallback final
+                    # 🔥 fallback automático
                     if engine != self.edge:
-                        print("[VoiceManager] fallback → Edge")
-                        self.edge.speak(texto)
+                        try:
+                            print("[VoiceManager] fallback → Edge")
+                            audio_path = self.edge.falar(texto)
+
+                            if audio_path:
+                                import simpleaudio as sa
+                                wave_obj = sa.WaveObject.from_wave_file(audio_path)
+                                play_obj = wave_obj.play()
+
+                        except Exception as e2:
+                            print("[VoiceManager] fallback falhou:", e2)
 
                 time.sleep(0.1)
 
@@ -77,25 +89,29 @@ class voicemanager:
         threading.Thread(target=worker, daemon=True).start()
 
     # =========================
-    # DECISÃO INTELIGENTE
+    # DECISÃO DE ENGINE (SIMPLES E PREVISÍVEL)
     # =========================
-    def _escolher_engine(self, emocao, prioridade, tipo):
+    def _escolher_engine(self):
 
-        # 💀 offline obrigatório
-        if not self.internet:
+        # 🔴 modo forçado offline
+        if self.mode == "offline":
             return self.xtts
 
-        # 🎭 emoção alta → XTTS
-        if emocao >= 0.7:
-            return self.xtts
+        # 🟢 modo forçado online
+        if self.mode == "online":
+            return self.edge
 
-        # ⚡ fala crítica → XTTS
-        if prioridade >= 2:
-            return self.xtts
+        # 🧠 modo automático
+        if self.mode == "auto":
+            try:
+                import requests
+                requests.get("https://www.google.com", timeout=1)
+                return self.edge
+            except:
+                if not self.xtts_ready():
+                    print("[VoiceManager] carregando XTTS...")
+                    self.xtts.carregar()
+                return self.xtts
 
-        # 🎯 tipo emocional → XTTS
-        if tipo == "emocional":
-            return self.xtts
-
-        # 🟢 padrão → Edge (rápido)
+        # fallback padrão
         return self.edge

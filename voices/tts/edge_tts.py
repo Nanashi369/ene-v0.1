@@ -13,6 +13,13 @@ class edgetts:
     # =========================
     # Interface pública
     # =========================
+    def falar(self, texto):
+        try:
+            # chama método interno real
+            return self._speak(texto)
+        except Exception as e:
+            print("[EdgeTTS] erro:", e)
+            return None
     def speak(self, text):
         if self.busy:
             print("[Edge] ocupado")

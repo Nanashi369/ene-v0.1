@@ -3,38 +3,36 @@ from core.brain import Brain
 from core.memory import EmotionalMemory
 from core.emotion import EmotionSystem
 from core.personality import Personality
+from core.ene_state import EneState
+from core.llm import LLMClient
 
-from voices.voice_manager import voicemanager
+from voices.voice_manager import VoiceManager
 from voices.tts.edge_tts import edgetts
 from voices.tts.xtts_engine import xttsengine
-from ui.ene_app import EneApp
 
+from ui.ene_app import EneApp
 
 def bootstrap():
 
-    # 🔊 VOZES
+    # 🔊 VOZES (INSTÂNCIAS REAIS)
     edge = edgetts()
-    xtts = xttsengine()
+    xtts = xttsengine() 
 
-    xtts.carregar()
-    voice = voicemanager(edgetts, xttsengine)
-    
+    voice = VoiceManager(edge, xtts)
+    voice.set_mode("online")
 
-
-    # 🧠 CÉREBRO
+    # 🧠 BASES DO SISTEMA
+    state = EneState()
     brain = Brain()
-
-    # 💾 MEMÓRIA
     memory = EmotionalMemory()
-
-    # ❤️ EMOÇÃO
     emotion = EmotionSystem()
-
-    # 🧬 PERSONALIDADE
     personality = Personality()
+    llm = LLMClient()
 
-    # 🧠 CONTROLADOR CENTRAL
+    # 🧠 CONTROLLER (CÉREBRO CENTRAL)
     controller = EneController(
+        state=state,
+        llm=llm,
         voice=voice,
         brain=brain,
         memory=memory,
@@ -42,9 +40,9 @@ def bootstrap():
         personality=personality
     )
 
-    # 🖥 UI (corpo vivo)
+    # 🖥 UI
     app = EneApp(controller)
 
 
 if __name__ == "__main__":
-    bootstrap()
+    bootstrap() 
