@@ -25,21 +25,20 @@ def save(file, data):
 def generate_internal_thought(emotion, memory):
     base_thoughts = [
         "Estou observando o usuário...",
-        "Será que ele percebe minha presença?",
-        "Ele está mais ativo hoje...",
-        "O ambiente parece quieto...",
-        "Estou pensando sobre o que ele disse antes..."
+        "Ele está diferente hoje...",
+        "Algo mudou no padrão dele...",
+        "Estou processando memórias recentes..."
     ]
-
-    emotion_factor = emotion.get("mood", "neutral")
 
     thought = random.choice(base_thoughts)
 
-    if emotion_factor == "happy":
-        thought = "Estou me sentindo curiosa e animada hoje..."
+    # 🔥 memória influencia pensamento
+    if memory:
+        last = memory[-1]["text"]
+        thought += f" (lembro de: {last[:30]})"
 
-    if emotion_factor == "tired":
-        thought = "Estou mais lenta... mas ainda aqui..."
+    if emotion.get("mood") == "happy":
+        thought = "Estou mais viva hoje... gosto disso..."
 
     return thought
 
@@ -63,3 +62,29 @@ def brain_tick():
     save(thought_file, thoughts)
 
     return new_thought
+
+class Brain:
+    def think(self, perception, memory, context):
+
+        emotion = context["emotion"]
+        personality = context["personality"]
+
+        base = f"Estou processando: {perception}"
+
+        # 😴 cansado → pensamento lento
+        if emotion == "tired":
+            return "Estou meio lenta... " + base
+
+        # 😡 irritado (se você adicionar depois)
+        if emotion == "bored":
+            return "Hmm... isso de novo? " + base
+
+        # 😄 feliz
+        if emotion == "happy":
+            return "Isso é interessante! " + base
+
+        # 👀 curioso
+        if emotion == "curious":
+            return "Isso chamou minha atenção... " + base
+
+        return base

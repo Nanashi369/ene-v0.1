@@ -1,21 +1,16 @@
-import requests
-from core.brain import brain_tick
+class LLMClient:
+    def __init__(self):
+        self.url = "http://localhost:11434/api/generate"
+        self.model = "llama3"
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL = "llama3"
-
-def generate_response(prompt):
-    try:
-        response = requests.post(OLLAMA_URL, json={
-            "model": MODEL,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "num_predict": 40
+    def generate(self, prompt):
+        response = requests.post(
+            self.url,
+            json={
+                "model": self.model,
+                "prompt": prompt,
+                "stream": False
             }
-        })
+        )
 
-        return response.json()["response"].strip()
-
-    except:
-        return "hm… deu algum problema, mas finge que foi charme."
+        return response.json().get("response", "").strip()

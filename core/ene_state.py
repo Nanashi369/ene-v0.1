@@ -1,16 +1,23 @@
-import random
-
 class EneState:
     def __init__(self):
-        self.mood = "idle"
-        self.surprise_variant = None
-        self.sprite = "assets/idle/idle_1.png"
 
-        self.energy = 90
-        self.focus = 30
-        self.curiosity = 50
-        self.last_interaction_time = 0
-        self.last_speak_time = 0
+        self.energy = 70
+        self.mood = "neutral"
+        self.last_interaction = None
 
-    def set_mood(self, mood):
+        self.sprite = "assets/idle.png"
+
+        self.is_thinking = False
+        self.is_talking = False
+
+    def update_sprite(self, mood):
         self.mood = mood
+
+        if mood == "happy":
+            self.sprite = "assets/happy.png"
+        elif mood == "tired":
+            self.sprite = "assets/tired.png"
+        elif mood == "bored":
+            self.sprite = "assets/bored.png"
+        else:
+            self.sprite = "assets/idle.png"

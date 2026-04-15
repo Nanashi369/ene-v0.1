@@ -1,68 +1,101 @@
-class VoiceManager:
+import time
+import threading
+
+
+class voicemanager:
     def __init__(self, edge_tts, xtts_engine):
-        self.edge_tts = edge_tts
+        
+        self.edge = edge_tts
         self.xtts = xtts_engine
 
         self.internet = True
         self.xtts_ready = False
 
-    # =========================
-    # Interface pública (única)
-    # =========================
-    def falar(self, texto, emocao=0.0, prioridade=0):
-        print(f"[VoiceManager] Pedido de fala: {texto}")
-
-        engine = self._decidir_engine(emocao, prioridade)
-
-        if engine == "xtts":
-            return self._usar_xtts(texto)
-
-        elif engine == "edge":
-            return self._usar_edge(texto)
-
-        print("[VoiceManager] Nenhuma engine disponível")
-        return None
+        self.is_speaking = False
+        self.queue = []
 
     # =========================
-    # Decisão central
+    # CONTROLES EXTERNOS
     # =========================
-    def _decidir_engine(self, emocao, prioridade):
+    def set_internet(self, status: bool):
+        self.internet = status
+
+    def set_xtts_ready(self, status: bool):
+        self.xtts_ready = status
+
+    # =========================
+    # API PRINCIPAL
+    # =========================
+    def falar(self, texto, emocao="neutral", prioridade=1, tipo="normal"):
+
+        # 🔊 emoção controla estilo
+        if emocao == "happy":
+            texto = texto + " 🙂"
+
+        elif emocao == "tired":
+            texto = texto.lower()
+
+        elif emocao == "curious":
+            texto = "hmm... " + texto
+
+        # 🎤 escolha de engine
+        if emocao == "tired":
+            self.edge.falar(texto)
+        else:
+            self.xtts.falar(texto)
+        self.queue.append((texto, emocao, prioridade, tipo))
+
+        if not self.is_speaking:
+            self._processar_fila()
+
+    # =========================
+    # FILA INTERNA
+    # =========================
+    def _processar_fila(self):
+        def worker():
+            while self.queue:
+                self.is_speaking = True
+
+                texto, emocao, prioridade, tipo = self.queue.pop(0)
+
+                engine = self._escolher_engine(emocao, prioridade, tipo)
+
+                try:
+                    engine.speak(texto)
+                except Exception as e:
+                    print("[VoiceManager] erro:", e)
+
+                    # fallback final
+                    if engine != self.edge:
+                        print("[VoiceManager] fallback → Edge")
+                        self.edge.speak(texto)
+
+                time.sleep(0.1)
+
+            self.is_speaking = False
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    # =========================
+    # DECISÃO INTELIGENTE
+    # =========================
+    def _escolher_engine(self, emocao, prioridade, tipo):
+
+        # 💀 offline obrigatório
         if not self.internet:
-            return "xtts"
+            return self.xtts
 
-        if prioridade >= 2 and self.xtts_ready:
-            return "xtts"
+        # 🎭 emoção alta → XTTS
+        if emocao >= 0.7:
+            return self.xtts
 
-        if emocao >= 0.7 and self.xtts_ready:
-            return "xtts"
+        # ⚡ fala crítica → XTTS
+        if prioridade >= 2:
+            return self.xtts
 
-        return "edge"
+        # 🎯 tipo emocional → XTTS
+        if tipo == "emocional":
+            return self.xtts
 
-    # =========================
-    # Execução
-    # =========================
-    def _usar_edge(self, texto):
-        try:
-            print("[VoiceManager] → Edge")
-            return self.edge_tts.falar(texto)
-
-        except Exception as e:
-            print("[VoiceManager] Edge falhou:", e)
-
-            if self.xtts_ready:
-                return self._usar_xtts(texto)
-
-            return None
-
-    def _usar_xtts(self, texto):
-        if not self.xtts_ready:
-            print("[VoiceManager] XTTS não pronto")
-            return None
-
-        try:
-            print("[VoiceManager] → XTTS")
-            return self.xtts.falar(texto)
-
-        except Exception as e:
-            print("[VoiceManager] XTTS falhou:", e)
-            return None
+        # 🟢 padrão → Edge (rápido)
+        return self.edge

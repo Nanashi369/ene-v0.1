@@ -21,25 +21,97 @@ def save_emotion(emotion):
         json.dump(emotion, f, indent=2, ensure_ascii=False)
 
 
-def update_emotion(emotion, event=None):
-    """
-    Atualização simples baseada em eventos.
-    Depois isso vira IA emocional real.
-    """
+import time
+import random
 
-    if event == "click":
-        emotion["curiosity"] = min(100, emotion["curiosity"] + 5)
-        emotion["energy"] = max(0, emotion["energy"] - 2)
 
-    elif event == "idle":
-        emotion["energy"] = max(0, emotion["energy"] - 1)
+class EmotionSystem:
+    def __init__(self):
+        self.energy = 70
+        self.happiness = 50
+        self.curiosity = 60
+        self.boredom = 20
 
-    elif event == "talk":
-        emotion["focus"] = min(100, emotion["focus"] + 3)
+        self.last_update = time.time()
 
-    # clamp geral
-    emotion["energy"] = max(0, min(100, emotion["energy"]))
-    emotion["focus"] = max(0, min(100, emotion["focus"]))
-    emotion["curiosity"] = max(0, min(100, emotion["curiosity"]))
+    # -------------------------
+    # ATUALIZAÇÃO PRINCIPAL
+    # -------------------------
+    def evaluate(self, perception, memory):
 
-    return emotion
+        now = time.time()
+        delta = now - self.last_update
+        self.last_update = now
+
+        # 🔋 energia cai com o tempo
+        self.energy -= delta * 0.5
+
+        # 😐 tédio sobe se não há input forte
+        if not perception:
+            self.boredom += 2
+        else:
+            self.boredom -= 5
+
+        # 💡 curiosidade reage ao input
+        self.curiosity += len(perception) * 0.1
+
+        # ❤️ felicidade baseada em interação
+        if "oi" in perception:
+            self.happiness += 5
+
+        # 🧠 memória influencia emoção
+        if memory:
+            self.happiness += 1
+            self.curiosity += 1
+
+        # clamp (limites)
+        self._clamp()
+
+        return self.get_emotion()
+
+    # -------------------------
+    # EMOÇÃO FINAL
+    # -------------------------
+    def get_emotion(self):
+
+        if self.energy < 20:
+            return "tired"
+
+        if self.happiness > 70:
+            return "happy"
+
+        if self.boredom > 60:
+            return "bored"
+
+        if self.curiosity > 70:
+            return "curious"
+
+        return "neutral"
+
+    # -------------------------
+    # VARIAÇÃO DE INTENSIDADE
+    # -------------------------
+    def intensity(self):
+        return (self.energy + self.happiness) / 200
+
+    # -------------------------
+    # AJUSTE MANUAL (eventos)
+    # -------------------------
+    def react(self, event):
+        if event == "user_talk":
+            self.happiness += 3
+            self.energy += 1
+
+        if event == "ignored":
+            self.boredom += 5
+
+        self._clamp()
+
+    # -------------------------
+    # LIMITE DE VALORES
+    # -------------------------
+    def _clamp(self):
+        self.energy = max(0, min(100, self.energy))
+        self.happiness = max(0, min(100, self.happiness))
+        self.curiosity = max(0, min(100, self.curiosity))
+        self.boredom = max(0, min(100, self.boredom))

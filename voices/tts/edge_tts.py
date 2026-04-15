@@ -5,7 +5,7 @@ import subprocess
 import pygame
 
 
-class EdgeTTS:
+class edgetts:
     def __init__(self):
         pygame.mixer.init()
         self.busy = False
@@ -13,7 +13,7 @@ class EdgeTTS:
     # =========================
     # Interface pública
     # =========================
-    def falar(self, text):
+    def speak(self, text):
         if self.busy:
             print("[Edge] ocupado")
             return

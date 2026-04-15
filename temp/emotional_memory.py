@@ -1,51 +1,4 @@
-import json
 import time
-
-
-class Memory:
-    def __init__(self, path="memory.json"):
-        self.path = path
-        self.data = self._load()
-
-    def _load(self):
-        try:
-            with open(self.path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except:
-            return []
-
-    def _save(self):
-        with open(self.path, "w", encoding="utf-8") as f:
-            json.dump(self.data[-200:], f, indent=2, ensure_ascii=False)
-
-    # 🧠 salvar memória com peso emocional
-    def remember(self, text, emotion=0.5):
-        self.data.append({
-            "text": text,
-            "emotion": emotion,
-            "time": time.time()
-        })
-        self._save()
-
-    # 🔍 buscar memórias relevantes
-    def search(self, keyword):
-        results = []
-
-        for m in self.data:
-            if keyword.lower() in m["text"].lower():
-                results.append(m)
-
-        return results[-5:]
-
-    # ❤️ memória influencia emoção
-    def emotional_bias(self):
-        if not self.data:
-            return 0.5
-
-        recent = self.data[-10:]
-        avg = sum(m["emotion"] for m in recent) / len(recent)
-
-        return avg
 
 
 class EmotionalMemory:
@@ -119,4 +72,4 @@ class EmotionalMemory:
         if last["emotion"] == "tired":
             return -5
 
-        return 0    
+        return 0
