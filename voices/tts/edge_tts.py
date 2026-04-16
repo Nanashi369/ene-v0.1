@@ -13,10 +13,10 @@ class edgetts:
     # =========================
     # Interface pública
     # =========================
-    def falar(self, texto):
+    def falar(self, texto, rate: str | None = None, pitch: str | None = None):
         try:
             # chama método interno real
-            return self._speak(texto)
+            return self._speak(texto, rate=rate, pitch=pitch)
         except Exception as e:
             print("[EdgeTTS] erro:", e)
             return None
@@ -36,7 +36,7 @@ class edgetts:
     # =========================
     # execução real
     # =========================
-    def _speak(self, text):
+    def _speak(self, text, rate: str | None = None, pitch: str | None = None):
         try:
             os.makedirs("voices", exist_ok=True)
 
@@ -50,12 +50,23 @@ class edgetts:
                     except:
                         pass
 
-            subprocess.run([
+            args = [
                 "edge-tts",
-                "--voice", "pt-BR-FranciscaNeural",
-                "--text", text,
-                "--write-media", filename
-            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                "--voice",
+                "pt-BR-FranciscaNeural",
+            ]
+            if rate:
+                args += ["--rate", rate]
+            if pitch:
+                args += ["--pitch", pitch]
+            args += [
+                "--text",
+                text,
+                "--write-media",
+                filename,
+            ]
+
+            subprocess.run(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
             pygame.mixer.music.load(filename)
             pygame.mixer.music.play()
@@ -79,3 +90,10 @@ class edgetts:
 
         finally:
             self.busy = False
+
+    def stop(self):
+        try:
+            pygame.mixer.music.stop()
+        except Exception:
+            pass
+        self.busy = False

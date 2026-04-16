@@ -1,0 +1,85 @@
+Para a Ene "enxergar" a tela e falar sobre ela, precisamos unir dois mundos: Visão Computacional (captura de imagem) e LLM Multimodal (que entende imagens, como o GPT-4o ou modelos locais como o Llama-3-Vision).
+Como você está usando o Cursor AI, vamos fazer isso de forma modular para não quebrar o que você já tem.
+
+Passo 1: O "Olho" da Ene (Captura de Tela)
+Primeiro, precisamos de uma função que tire um print da sua tela e prepare para a IA ler.
+O que pedir ao Cursor (Prompt):
+
+"@Codebase Crie um novo módulo em core/vision.py. Ele deve usar a biblioteca pyautogui ou Pillow para tirar um print da tela inteira e salvar temporariamente em assets/temp_screen.png. Adicione uma função para redimensionar a imagem para que ela não fique pesada ao enviar para a IA."
+Passo 2: O "Entendimento" (Conectando à IA)
+Agora, precisamos que a Ene analise essa imagem. Se você usa o OpenAI ou um modelo local via Ollama, o comando muda um pouco.
+
+O que pedir ao Cursor (Prompt):
+"@core/vision.py Crie uma função chamada analisar_tela. Ela deve enviar o print salvo para a nossa LLM (estou usando [Diga qual você usa: GPT-4 ou Ollama]) com o seguinte comando de sistema: 'Você é a Ene, observe esta imagem da tela do meu usuário e descreva de forma breve e natural o que ele está fazendo ou o que há de interessante'."
+Passo 3: A "Voz" (Conectando ao Chat)
+Para ela falar o que viu, precisamos integrar isso ao seu main.py.
+
+O que pedir ao Cursor (Prompt):
+"@main.py No loop principal, crie um gatilho (pode ser uma tecla ou um comando de chat como '/ver') que chame as funções de visão. O resultado da análise deve ser enviado para o meu sistema de voz atual (voices) para que a Ene fale em voz alta o que viu na minha tela."
+
+
+Dicas Importantes para essa etapa:
+Instalação de Dependências: O Cursor vai escrever o código, mas você precisará rodar no terminal:
+pip install pyautogui Pillow
+Otimização: Pedir para a IA analisar a tela a cada segundo vai custar caro (se for API paga) ou travar seu PC (se for local). Comece fazendo ela ver a tela apenas quando você pedir.
+Privacidade: Lembre-se que, ao ativar isso, a IA verá tudo (senhas, conversas, etc). No futuro, podemos pedir ao Cursor para criar uma "lista negra" de programas que ela não deve olhar.
+Podemos começar criando o arquivo vision.py? Se sim, abra o Cursor e tente o primeiro prompt que te passei! Se der qualquer erro no terminal, é só colar aqui.
+
+pedir para a IA atuar como um "juiz de sentimentos" antes de gerar a resposta.
+Prompt para o Cursor: "@core Analise como o emotion.json é atualizado. Quero que a personalidade da Ene mude o tom de voz e a velocidade da fala dependendo do nível de felicidade ou raiva atual."
+
+4. Integração do STT (Apertar para Falar)
+Como você quer que o STT (Speech-to-Text) fique "preso" ao chat:
+Prompt para o Cursor: "Preciso implementar um botão de 'Push-to-Talk' no chat. Use a biblioteca SpeechRecognition. Enquanto eu segurar a tecla [ESCOLHA UMA TECLA], ela deve ouvir, e ao soltar, enviar o texto para a LLM."
+	
+
+Curto Prazo: Consciência e Memória (O Cérebro)	
+	RAG (Geração Aumentada por Recuperação). Em vez de enviar todo o histórico, a Ene pesquisa no memory.json apenas o que for relevante para o assunto atual
+		"Crie uma função de busca semântica para a memória da Ene. Ela deve resumir os tópicos do dia e arquivar em blocos, consultando apenas o bloco necessário para responder ao usuário."
+
+Médio Prazo: Percepção de Tela e Sistema (Olhos Internos)
+	Para ela saber o que você está fazendo no PC:
+A tecnologia: Bibliotecas como pyautogui (para ver a tela) e psutil (para ver programas abertos).
+Evolução Multimodal: Você pode usar o modelo GPT-4o-mini (que é barato) para "olhar" prints da sua tela e explicar para a Ene o que está acontecendo.
+O que pedir ao Cursor: "Crie um módulo chamado 'percepção_sistema'. Ele deve tirar um print da tela a cada X segundos, enviar para a IA descrever o que estou fazendo e salvar isso na memória temporária da Ene."
+
+Longo Prazo: Visão Externa e Casa Inteligente (O Corpo)
+	Para ela ver o ventilador e apagar a luz:
+Visão: Uso de OpenCV com a sua Webcam. A IA detecta objetos (ventilador, fogo, pessoas).
+Casa Inteligente: Integração com Home Assistant ou bibliotecas de protocolos MQTT. É assim que ela "aperta interruptores" virtuais.
+		"Como integrar meu script Python com a API do Home Assistant para controlar lâmpadas inteligentes via comandos de voz da Ene?"
+
+O Desafio da "Curiosidade" (Iniciativa Própria)
+Hoje, IAs só respondem quando você fala. Para ela ter curiosidade (ex: "Ei, percebi que seu PC está esquentando!"), você precisará de um Loop de Monitoramento:
+Um script roda em segundo plano olhando sensores (CPU, tela, câmera).
+Se algo sair do padrão, ele dispara um gatilho para a LLM: "Usuário não disse nada, mas você viu fumaça na câmera. O que você faz?"
+Ene interrompe e fala.
+		
+Peça para ele criar uma pasta chamada skills (habilidades). Cada coisa nova (controlar luz, ler PDF, ver tela) deve ser um arquivo separado dentro dessa pasta. Isso mantém seu projeto organizado enquanto ele cresce.
+
+
+meta>>>
+falar em tempo real
+	ter consciência da semântica das palavras
+	sumarização de memorias para não gastar tokens desnecessários da LLM
+
+percepção do ambiente
+	dentro do computador
+		o que esta acontecendo na tela
+		programas, aplicativos e documentos
+	fora do computador
+		visão e audio externos
+		conexões com articuladores manuais
+
+consultas e conselhos
+	ter curiosidade sobre o que sua percepção alcança
+	analise de ambiente 
+		(não só perceber e sim compreender) exemplo ao ver um ventilador saber o que é e se 
+está funcionando corretamente
+	conselhos em geral sobre todas as areas referente ao usuário ao perceber melhorias possíveis ou erros ocorrendo, exemplo ao perceber o ventilador pegando fogo aconselhar o usuário desligar e recomendar um novo modelo, conserto ou opção provisória
+
+ajuda interna e externa
+	externa	conseguir ligar, desligar e controlar energia para luz e outros eletrodomésticos (casa inteligente)
+	interna auxiliar o usuário na utilização geral do computador, comandos simples abra isso ou feche aquilo até coisas como faça um pdf com uma redação ou dissertação de tal assunto ou edite uma foto/video de tal jeito ou retirando tal coisa
+
+

@@ -16,6 +16,7 @@ class VoiceManager:
 
         self.is_speaking = False
         self.queue = []
+        self._stop_requested = False
 
     # =========================
     # CONTROLE EXTERNO
@@ -51,13 +52,17 @@ class VoiceManager:
         def worker():
             while self.queue:
                 self.is_speaking = True
+                if self._stop_requested:
+                    self.queue.clear()
+                    break
 
                 texto, emocao, prioridade, tipo = self.queue.pop(0)
 
                 engine = self._escolher_engine()
+                rate, pitch = self._prosodia_por_emocao(emocao)
 
                 try:
-                    audio_path = engine.falar(texto)
+                    audio_path = engine.falar(texto, rate=rate, pitch=pitch)
 
                     # 🔊 tocar áudio se existir
                     if audio_path:
@@ -72,7 +77,7 @@ class VoiceManager:
                     if engine != self.edge:
                         try:
                             print("[VoiceManager] fallback → Edge")
-                            audio_path = self.edge.falar(texto)
+                            audio_path = self.edge.falar(texto, rate=rate, pitch=pitch)
 
                             if audio_path:
                                 import simpleaudio as sa
@@ -85,8 +90,40 @@ class VoiceManager:
                 time.sleep(0.1)
 
             self.is_speaking = False
+            self._stop_requested = False
 
         threading.Thread(target=worker, daemon=True).start()
+
+    def stop_all(self):
+        self._stop_requested = True
+        self.queue.clear()
+        try:
+            if hasattr(self.edge, "stop"):
+                self.edge.stop()
+        except Exception:
+            pass
+
+    def _prosodia_por_emocao(self, emocao: str):
+        """
+        edge-tts aceita:
+        - rate: "+10%" / "-10%"
+        - pitch: "+5Hz" / "-5Hz"
+        """
+        emocao = (emocao or "neutral").lower().strip()
+
+        if emocao == "happy":
+            return "+10%", "+3Hz"
+        if emocao == "tired":
+            return "-15%", "-2Hz"
+        if emocao == "curious":
+            return "+5%", "+2Hz"
+        if emocao == "bored":
+            return "-5%", "-1Hz"
+
+        return None, None
+
+    def xtts_ready(self) -> bool:
+        return bool(getattr(self.xtts, "ready", False))
 
     # =========================
     # DECISÃO DE ENGINE (SIMPLES E PREVISÍVEL)

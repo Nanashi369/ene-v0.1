@@ -19,7 +19,7 @@ class xttsengine:
         self.ready = True
         print("[XTTS] pronto")
 
-    def falar(self, texto):
+    def falar(self, texto, **_kwargs):
         if not self.ready:
             print("[XTTS] ainda não pronto")
             return None

@@ -1,0 +1,28 @@
+{
+  "happy": [
+    "surprise",
+    "walk",
+    "idle"
+  ],
+  "curious": [
+    "click",
+    "surprise",
+    "idle"
+  ],
+  "bored": [
+    "bored",
+    "idle"
+  ],
+  "tired": [
+    "idle",
+    "bored"
+  ],
+  "angry": [
+    "angry",
+    "bored",
+    "idle"
+  ],
+  "neutral": [
+    "idle"
+  ]
+}

@@ -1,0 +1,26 @@
+texto
+
+/continuo on ou /continuo ligar
+/continuo off ou /continuo desligar
+/feature <nome> <on|off> (ex.: /feature continuous_vision on)
+/status
+/parar
+/skills
+/skill open_notepad
+/skill open_calculator
+/ver 
+
+
+fala
+
+“ligar modo contínuo” → /continuo on
+“desligar modo contínuo” → /continuo off
+“status” / “como você está” → /status
+“parar agora” / “interromper” → /parar
+“listar skills” / “quais habilidades” → /skills
+“abrir bloco de notas” → /skill open_notepad
+“abrir calculadora” → /skill open_calculator
+“ver tela” / “olhar tela”
+“ver tela focando no navegador” → /ver focando no navegador
+“ligar visão contínua” → /feature continuous_vision on
+“desligar visão contínua” → /feature continuous_vision off

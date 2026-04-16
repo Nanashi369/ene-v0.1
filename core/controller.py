@@ -1,20 +1,22 @@
-import cmd
-
-from more_itertools import last
 import requests
-
-from pydoc import text
-from random import random
-from time import time
-from typing import final
-from click import prompt
-from matplotlib.style import context
-from core import emotion, emotion, memory, perception, personality, personality
 from core.prompt_builder import build_prompt
+from core.interfaces import LLMProvider, MemoryProvider, VoiceProvider
+from core.commands import handle_local_command
+from core.skills_registry import SkillRegistry
 
 
 class EneController:
-    def __init__(self, voice, brain, memory, emotion, personality, state, llm):
+    def __init__(
+        self,
+        voice: VoiceProvider,
+        brain,
+        memory: MemoryProvider,
+        emotion,
+        personality,
+        state,
+        llm: LLMProvider,
+        config=None,
+    ):
         self.state = state
         self.llm = llm
         self.voice = voice
@@ -22,14 +24,15 @@ class EneController:
         self.memory = memory
         self.emotion = emotion
         self.personality = personality
+        self.config = config
+        self.skills = SkillRegistry()
+        self._last_continuous_run = 0.0
+        self._last_vision_run = 0.0
+        self._last_vision_text = ""
+        self._interrupt_generation = False
 
     def _handle_commands(self, text):
-        text = text.lower()
-
-        if "repete" in text or "repita" in text:
-            return self.state.last_response
-
-        return None    
+        return handle_local_command(self, text)
     
     def _buscar_web(self, query):
         try:
@@ -75,7 +78,7 @@ class EneController:
         return any(p in text for p in perguntas)
 
     def handle_input(self, text):
-        
+        self._interrupt_generation = False
         perception = text.lower().strip()
         
         cmd = self._handle_commands(perception)
@@ -108,7 +111,7 @@ class EneController:
         Resposta:
         """
 
-                final = self.llm.generate(prompt)
+                final = self._generate_reply(prompt)
 
                 self.voice.falar(final, emocao="neutral")
                 return final
@@ -126,7 +129,7 @@ class EneController:
         Resposta:
         """
 
-            final = self.llm.generate(prompt)
+            final = self._generate_reply(prompt)
 
             self.voice.falar(final, emocao="neutral")
 
@@ -142,7 +145,7 @@ class EneController:
         # ❤️ emoção
         emotion = self.emotion.evaluate(perception, mem)
 
-        self.state.mood = emotion
+        self.state.set_mood(emotion)
         self.state.energy = self.emotion.energy
 
         personality = self.personality
@@ -167,10 +170,11 @@ class EneController:
             mem,
             emotion,
             personality,
-            thought
+            thought,
+            memory_source=self.memory,
         )
 
-        final = self.llm.generate(prompt)
+        final = self._generate_reply(prompt)
 
         self.voice.falar(final, emocao=emotion)
         self.state.last_response = final
@@ -178,7 +182,27 @@ class EneController:
         
         return final
 
+    def _generate_reply(self, prompt: str) -> str:
+        # Se o provider suportar streaming, consome incrementalmente.
+        # Caso contrário, fallback simples.
+        if hasattr(self.llm, "stream_generate"):
+            chunks = []
+            try:
+                for chunk in self.llm.stream_generate(prompt):
+                    if self._interrupt_generation:
+                        break
+                    chunks.append(chunk)
+                final = "".join(chunks).strip()
+                if final:
+                    return final
+            except Exception:
+                pass
+        return self.llm.generate(prompt)
+
     def brain_tick(self):
+        if not self.is_continuous_enabled("proactive_speech"):
+            return None
+
         import random
         import time
 
@@ -245,3 +269,75 @@ class EneController:
 
     def set_state(self, key, value):
         setattr(self.state, key, value)
+
+    def interrupt_generation(self):
+        self._interrupt_generation = True
+        if hasattr(self.voice, "stop_all"):
+            self.voice.stop_all()
+
+    # =========================
+    # CONTROLES CONTÍNUOS
+    # =========================
+    def set_continuous_mode(self, enabled: bool):
+        self.state.continuous_enabled = bool(enabled)
+
+    def toggle_continuous_mode(self) -> bool:
+        self.state.continuous_enabled = not self.state.continuous_enabled
+        return self.state.continuous_enabled
+
+    def is_continuous_enabled(self, feature: str | None = None) -> bool:
+        if not self.state.continuous_enabled:
+            return False
+        if feature is None:
+            return True
+        return bool(self.state.continuous_features.get(feature, False))
+
+    def set_continuous_feature(self, feature: str, enabled: bool):
+        self.state.continuous_features[feature] = bool(enabled)
+
+    def get_continuous_status(self):
+        return {
+            "enabled": bool(self.state.continuous_enabled),
+            "features": dict(self.state.continuous_features),
+        }
+
+    def run_continuous_tasks(self):
+        """
+        Runner leve para tarefas contínuas.
+        Mantém throttling para não sobrecarregar hardware.
+        """
+        import time
+
+        if not self.state.continuous_enabled:
+            return None
+
+        now = time.time()
+        interval = 1.0
+        if self.config is not None:
+            interval = float(getattr(self.config, "continuous_interval_seconds", 1.0))
+        if now - self._last_continuous_run < interval:
+            return None
+        self._last_continuous_run = now
+
+        # Fase 3: fala proativa
+        fala = self.brain_tick()
+
+        # Fase 4: visão contínua opcional e leve
+        if self.is_continuous_enabled("continuous_vision"):
+            vision_interval = 90.0
+            if self.config is not None:
+                vision_interval = float(getattr(self.config, "vision_interval_seconds", 90.0))
+            if now - self._last_vision_run >= vision_interval:
+                self._last_vision_run = now
+                try:
+                    from core.vision import analyze_screen
+
+                    desc = analyze_screen()
+                    # guarda apenas mudanças significativas para evitar spam de memória.
+                    if desc and desc != self._last_vision_text and not desc.startswith("[VISION ERROR]"):
+                        self._last_vision_text = desc
+                        self.memory.remember(f"[vision] {desc}", "curious", intensity=0.7)
+                except Exception:
+                    pass
+
+        return fala
